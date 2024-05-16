@@ -48,8 +48,11 @@ public class CustomerService {
 		kieSession.insert(updateCustomerDto);
 		kieSession.fireAllRules();
 		
-		return updateCustomerUseCase.update(updateCustomerDto.getRepositoryId(), Customer.builder()
-				.build());
+		Customer customer = getById(updateCustomerDto.getId()).block();
+		customer.setName(updateCustomerDto.getName());
+		customer.setEmail(updateCustomerDto.getEmail());
+		
+		return updateCustomerUseCase.update(updateCustomerDto.getRepositoryId(), customer);
 	}
 
 	public Mono<Customer> getById(String id) {

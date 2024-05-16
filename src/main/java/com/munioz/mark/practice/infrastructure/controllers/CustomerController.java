@@ -15,7 +15,6 @@ import com.munioz.mark.practice.application.dto.DeleteCustomerDto;
 import com.munioz.mark.practice.application.dto.Result;
 import com.munioz.mark.practice.application.dto.UpdateCustomerDto;
 import com.munioz.mark.practice.application.services.CustomerService;
-import com.munioz.mark.practice.domain.models.Customer;
 
 import io.github.resilience4j.retry.annotation.Retry;
 import reactor.core.publisher.Mono;
@@ -29,17 +28,17 @@ public class CustomerController {
 	
 	@GetMapping("/{id}")
 	@Retry(name = "retryCustomerApi", fallbackMethod = "fallbackAfterRetry")
-	public Mono<Result<Customer>> getCustomerById(@PathVariable("id") String id) {
+	public Mono<Result<?>> getCustomerById(@PathVariable("id") String id) {
 		return customerService.getById(id).map(Result::success);
 	}
 	
 	@PostMapping("/create")
-	public Mono<Result<Customer>> createCustomer(@RequestBody CreateCustomerDto createCustomerDto) {
+	public Mono<Result<?>> createCustomer(@RequestBody CreateCustomerDto createCustomerDto) {
 		return customerService.create(createCustomerDto).map(Result::success);
 	}
 	
 	@PutMapping("/modify")
-	public Mono<Result<Customer>> modifyCustomer(@RequestBody UpdateCustomerDto modifyCustomerDto) {
+	public Mono<Result<?>> modifyCustomer(@RequestBody UpdateCustomerDto modifyCustomerDto) {
 		return customerService.update(modifyCustomerDto).map(Result::success);
 	}
 	
@@ -52,7 +51,7 @@ public class CustomerController {
 		return customerService.deleteById(deleteCustomerDto).map(Result::success);
 	}
 
-	
+
 	public Mono<Result<Object>> fallbackAfterRetry(Exception exception) {
 		return Mono.just(Result.error(exception.getMessage()));
 	}

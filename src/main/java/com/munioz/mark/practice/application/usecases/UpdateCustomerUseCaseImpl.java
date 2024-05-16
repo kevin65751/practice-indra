@@ -1,5 +1,8 @@
 package com.munioz.mark.practice.application.usecases;
 
+import java.util.Date;
+import java.util.function.Function;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,9 +26,20 @@ public class UpdateCustomerUseCaseImpl implements UpdateCustomerUseCase {
 	public Mono<Customer> update(int dataSourceId, Customer customer) {
 		CustomerRepositoryPort customerRepository = customerRepositoryFactoryPort
 				.getCustomerRepositoryPort(dataSourceId);
+		customer.setModified(new Date());
 		
-		log.info("Modify customer ({}): {}", customerRepository.getClass().getName(), customer);
-		return customerRepository.save(customer);
+		log.info("Updating customer ({}): {}", customerRepository.getClass().getName(), customer);
+		
+		return customerRepository.getById(customer.getId())
+				.flatMap(new Function<Customer, Mono<Customer>>() {
+					@Override
+					public Mono<Customer> apply(Customer findedCustomer) {
+						findedCustomer.setName(customer.getName());
+						findedCustomer.setEmail(customer.getEmail());
+						findedCustomer.setModified(new Date());
+						return customerRepository.save(findedCustomer);
+					}
+				});
 	}
 	
 }

@@ -1,4 +1,4 @@
-package com.munioz.mark.practice.controller;
+package com.munioz.mark.practice.infrastructure.controller;
 
 import static org.mockito.Mockito.*;
 
@@ -22,6 +22,8 @@ import com.munioz.mark.practice.application.dto.DeleteCustomerDto;
 import com.munioz.mark.practice.application.dto.Result;
 import com.munioz.mark.practice.application.dto.UpdateCustomerDto;
 import com.munioz.mark.practice.application.services.CustomerService;
+import com.munioz.mark.practice.domain.exceptions.CustomerAllReadyRegistered;
+import com.munioz.mark.practice.domain.exceptions.CustomerNotFoundException;
 import com.munioz.mark.practice.domain.models.Customer;
 import com.munioz.mark.practice.domain.ports.out.CustomerRepositoryFactoryPort;
 import com.munioz.mark.practice.infrastructure.controllers.CustomerController;
@@ -65,19 +67,6 @@ public class CustomerControllerTest {
 	}
 	
 	@Test
-	public void getCustomerErrorTest() throws Exception {
-		String customerId = String.format("%s-%s", UUID.randomUUID().toString(), CustomerRepositoryFactoryPort.DATA_SOURCE_1);
-		
-		when(customerService.getById(customerId)).thenThrow(new RuntimeException("Generic Test Exception"));
-		
-		webTestClient.get()
-			.uri(String.format("/api/customer/%s", customerId))
-			.exchange()
-			.expectStatus().is5xxServerError()
-			.expectBody().json(objectMapper.writeValueAsString(Result.error("Generic Test Exception")));
-	}
-	
-	@Test
 	public void createNormalCustomerTest() throws Exception {
 		CreateCustomerDto createCustomerDto = CreateCustomerDto.builder()
 				.name("Normal Customer")
@@ -104,27 +93,27 @@ public class CustomerControllerTest {
 	}
 	
 	@Test
-	public void modifyCustomerTest() throws Exception {
-		UpdateCustomerDto modifyCustomerDto = UpdateCustomerDto.builder()
+	public void updateCustomerTest() throws Exception {
+		UpdateCustomerDto updateCustomerDto = UpdateCustomerDto.builder()
 				.id(String.format("%s-%s", UUID.randomUUID().toString(), CustomerRepositoryFactoryPort.DATA_SOURCE_1))
 				.name("Modified name")
 				.email("Modified email")
 				.build();
 		
 		Customer customer = Customer.builder()
-				.id(modifyCustomerDto.getId())
-				.name(modifyCustomerDto.getName())
-				.email(modifyCustomerDto.getEmail())
+				.id(updateCustomerDto.getId())
+				.name(updateCustomerDto.getName())
+				.email(updateCustomerDto.getEmail())
 				.vip(true)
 				.created(new Date())
 				.modified(new Date())
 				.build();
-		when(customerService.update(modifyCustomerDto)).thenReturn(Mono.just(customer));
+		when(customerService.update(updateCustomerDto)).thenReturn(Mono.just(customer));
 		
 		webTestClient.put()
 			.uri("/api/customer/modify")
 			.contentType(MediaType.APPLICATION_JSON)
-			.body(BodyInserters.fromValue(modifyCustomerDto))
+			.body(BodyInserters.fromValue(updateCustomerDto))
 			.exchange()
 			.expectStatus().isOk()
 			.expectBody().json(objectMapper.writeValueAsString(Result.success(customer)));
@@ -144,4 +133,64 @@ public class CustomerControllerTest {
 			.expectStatus().isOk();
 	}
 	
+	// Exceptions Handler Tests
+	
+	@Test
+	public void customerNotFoundExceptionGetTest() throws Exception {
+		String customerId = String.format("%s-%s", UUID.randomUUID().toString(), CustomerRepositoryFactoryPort.DATA_SOURCE_1);
+		
+		CustomerNotFoundException customerNotFoundException = new CustomerNotFoundException(customerId);
+		when(customerService.getById(customerId)).thenReturn(Mono.error(customerNotFoundException));
+		
+		webTestClient.get()
+			.uri(String.format("/api/customer/%s", customerId))
+			.exchange()
+			.expectStatus().is2xxSuccessful()
+			.expectBody().json(objectMapper.writeValueAsString(Result.error(customerNotFoundException.getMessage())));
+	}
+	
+	@Test
+	public void customerAllReadyRegisteredTest() throws Exception {
+		String customerId = String.format("%s-%s", UUID.randomUUID().toString(), CustomerRepositoryFactoryPort.DATA_SOURCE_1);
+		
+		CreateCustomerDto createCustomerDto = CreateCustomerDto.builder()
+				.name("Normal Customer")
+				.email("normal@example.com")
+				.vip(false)
+				.build();
+		
+		CustomerAllReadyRegistered customerAllReadyRegistered = new CustomerAllReadyRegistered(customerId);
+		when(customerService.create(createCustomerDto)).thenReturn(Mono.error(customerAllReadyRegistered));
+		
+		webTestClient.post()
+			.uri("/api/customer/create")
+			.contentType(MediaType.APPLICATION_JSON)
+			.body(BodyInserters.fromValue(createCustomerDto))
+			.exchange()
+			.expectStatus().isOk()
+			.expectBody().json(objectMapper.writeValueAsString(Result.error(customerAllReadyRegistered.getMessage())));
+	}
+	
+	@Test
+	public void customerNotFoundUpdateTest() throws Exception {
+		String customerId = String.format("%s-%s", UUID.randomUUID().toString(), CustomerRepositoryFactoryPort.DATA_SOURCE_1);
+		
+		UpdateCustomerDto updateCustomerDto = UpdateCustomerDto.builder()
+				.id(customerId)
+				.name("Updated name")
+				.email("updated@example.com")
+				.build();
+		
+		CustomerNotFoundException customerNotFoundException = new CustomerNotFoundException(customerId);
+		when(customerService.update(updateCustomerDto))
+		.thenReturn(Mono.error(customerNotFoundException));
+		
+		webTestClient.put()
+			.uri("/api/customer/modify")
+			.contentType(MediaType.APPLICATION_JSON)
+			.body(BodyInserters.fromValue(updateCustomerDto))
+			.exchange()
+			.expectStatus().isOk()
+			.expectBody().json(objectMapper.writeValueAsString(Result.error(customerNotFoundException.getMessage())));
+	}
 }

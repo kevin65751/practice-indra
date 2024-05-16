@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.munioz.mark.practice.domain.exceptions.CustomerNotFoundException;
 import com.munioz.mark.practice.domain.models.Customer;
 import com.munioz.mark.practice.domain.ports.in.CreateCustomerUseCase;
 import com.munioz.mark.practice.domain.ports.out.CustomerRepositoryFactoryPort;
@@ -27,12 +28,15 @@ public class CreateCustomerUseCaseImpl implements CreateCustomerUseCase {
 		CustomerRepositoryPort customerRepository = customerRepositoryFactoryPort
 				.getCustomerRepositoryPort(dataBaseId);
 		
-		customer.setId(String.format("%s-%s", UUID.randomUUID().toString(), dataBaseId));
+		String customerId = String.format("%s-%s", UUID.randomUUID().toString(), dataBaseId);
+		
+		customer.setId(customerId);
 		customer.setCreated(new Date());
 		customer.setModified(new Date());
 		
 		log.info("Creating costumer ({}) : {}", customerRepository.getClass().getName(), customer);
-		return customerRepository.save(customer);
+		return customerRepository.getById(customerId)
+				.onErrorReturn(CustomerNotFoundException.class, customerRepository.save(customer).block());
 	}
 	
 }

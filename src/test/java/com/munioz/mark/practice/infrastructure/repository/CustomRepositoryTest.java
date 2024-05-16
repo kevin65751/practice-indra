@@ -1,4 +1,4 @@
-package com.munioz.mark.practice.repository;
+package com.munioz.mark.practice.infrastructure.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Date;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,14 @@ import com.munioz.mark.practice.infrastructure.entities.CustomerEntity;
 import com.munioz.mark.practice.infrastructure.repositories.first.CustomerRepository1;
 import com.munioz.mark.practice.infrastructure.repositories.second.CustomerRepository2;
 
+import de.flapdoodle.embed.mongo.MongodExecutable;
+import de.flapdoodle.embed.mongo.MongodStarter;
+import de.flapdoodle.embed.mongo.config.IMongodConfig;
+import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
+import de.flapdoodle.embed.mongo.config.Net;
+import de.flapdoodle.embed.mongo.distribution.Version;
+import de.flapdoodle.embed.process.runtime.Network;
+
 @SpringBootTest
 public class CustomRepositoryTest {
 	private static final Logger log = LoggerFactory.getLogger(CustomRepositoryTest.class);
@@ -27,6 +36,35 @@ public class CustomRepositoryTest {
 	
 	@Autowired
 	private CustomerRepository2 customerDatasource2Repository;
+
+	@BeforeAll
+	public static void setup() {
+		try {
+			/**
+			 * Iniciando bases de datos embebidas para pruebas de integración
+			 */
+			log.info("Setting up");
+			
+			MongodStarter mongodStarter = MongodStarter.getDefaultInstance();
+			
+			IMongodConfig mongodConfig1 = new MongodConfigBuilder()
+					.version(Version.Main.PRODUCTION)
+					.net(new Net("localhost", 27017, Network.localhostIsIPv6()))
+					.build();
+			MongodExecutable mongodExecutable1 = mongodStarter.prepare(mongodConfig1);
+			mongodExecutable1.start();
+			
+			IMongodConfig mongodConfig2 = new MongodConfigBuilder()
+					.version(Version.Main.PRODUCTION)
+					.net(new Net("localhost", 27018, Network.localhostIsIPv6()))
+					.build();
+			MongodExecutable mongodExecutable2 = mongodStarter.prepare(mongodConfig2);
+			mongodExecutable2.start();
+		} catch (Throwable t) {
+			t.printStackTrace();
+			System.exit(-1);
+		}
+	}
 	
 	@Test
 	public void testCrudRepo1() {
