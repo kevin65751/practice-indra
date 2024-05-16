@@ -1,0 +1,51 @@
+package rules;
+
+import com.munioz.mark.practice.application.dto.CreateCustomerDto;
+import com.munioz.mark.practice.application.dto.UpdateCustomerDto;
+import com.munioz.mark.practice.application.dto.DeleteCustomerDto;
+import com.munioz.mark.practice.domain.ports.out.CustomerRepositoryFactoryPort;
+
+rule "Create Customer VIP"
+	when 
+		createCustomerDtoObject : CreateCustomerDto(vip);
+	then
+		createCustomerDtoObject.setRepositoryId(CustomerRepositoryFactoryPort.DATA_SOURCE_1);
+end
+
+rule "Create Normal Customer"
+	when 
+		createCustomerDtoObject : CreateCustomerDto(!vip);
+	then
+		createCustomerDtoObject.setRepositoryId(CustomerRepositoryFactoryPort.DATA_SOURCE_2);
+end
+
+
+rule "Modify Customer VIP"
+	when 
+		updateCustomerDtoObject : UpdateCustomerDto(getId().endsWith(Integer.toString(CustomerRepositoryFactoryPort.DATA_SOURCE_1)));
+	then
+		updateCustomerDtoObject.setRepositoryId(CustomerRepositoryFactoryPort.DATA_SOURCE_1);
+end
+
+rule "Modify Customer Normal"
+	when 
+		updateCustomerDtoObject : UpdateCustomerDto(getId().endsWith(Integer.toString(CustomerRepositoryFactoryPort.DATA_SOURCE_2)));
+	then
+		updateCustomerDtoObject.setRepositoryId(CustomerRepositoryFactoryPort.DATA_SOURCE_2);
+end
+
+
+rule "Delete Customer VIP"
+	when 
+		deleteCustomerDtoObject : DeleteCustomerDto(getId().endsWith(Integer.toString(CustomerRepositoryFactoryPort.DATA_SOURCE_1)));
+	then
+		deleteCustomerDtoObject.setRepositoryId(CustomerRepositoryFactoryPort.DATA_SOURCE_1);
+end
+
+rule "Delete Customer Normal"
+	when 
+		deleteCustomerDtoObject : DeleteCustomerDto(getId().endsWith(Integer.toString(CustomerRepositoryFactoryPort.DATA_SOURCE_2)));
+	then
+		deleteCustomerDtoObject.setRepositoryId(CustomerRepositoryFactoryPort.DATA_SOURCE_2);
+end
+
