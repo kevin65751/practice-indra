@@ -63,6 +63,7 @@ public class CustomerService {
 		kieSession.insert(deleteCustomerDto);
 		kieSession.fireAllRules();
 		
+		if(deleteCustomerDto.getRepositoryId() == null) return Mono.error(new RuntimeException("No se encontró repositorio para el id: " + deleteCustomerDto.getId()));
 		return deleteCustomerUseCase.deleteById(deleteCustomerDto.getRepositoryId(), deleteCustomerDto.getId());
 	}
 	

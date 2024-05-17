@@ -16,6 +16,7 @@ import com.munioz.mark.practice.application.dto.Result;
 import com.munioz.mark.practice.application.dto.UpdateCustomerDto;
 import com.munioz.mark.practice.application.services.CustomerService;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import reactor.core.publisher.Mono;
 
@@ -33,16 +34,19 @@ public class CustomerController {
 	}
 	
 	@PostMapping("/create")
+	@CircuitBreaker(name = "createCircuiteBreakerApi")
 	public Mono<Result<?>> createCustomer(@RequestBody CreateCustomerDto createCustomerDto) {
 		return customerService.create(createCustomerDto).map(Result::success);
 	}
 	
 	@PutMapping("/modify")
+	@CircuitBreaker(name = "updateCircuiteBreakerApi")
 	public Mono<Result<?>> modifyCustomer(@RequestBody UpdateCustomerDto modifyCustomerDto) {
 		return customerService.update(modifyCustomerDto).map(Result::success);
 	}
 	
 	@DeleteMapping("/delete/{id}")
+	@CircuitBreaker(name = "deleteCircuiteBreakerApi")
 	public Mono<Result<Object>> deleteCustomer(@PathVariable("id") String id) {
 		DeleteCustomerDto deleteCustomerDto = DeleteCustomerDto.builder()
 				.id(id)
@@ -51,8 +55,12 @@ public class CustomerController {
 		return customerService.deleteById(deleteCustomerDto).map(Result::success);
 	}
 
-
-	public Mono<Result<Object>> fallbackAfterRetry(Exception exception) {
-		return Mono.just(Result.error(exception.getMessage()));
+	public Mono<Result<Object>> fallbackCircuitBreaker(Exception exception) {
+		return Mono.just(Result.error(String.format("Fallback: %s", exception.getMessage())));
 	}
+	
+	public Mono<Result<Object>> fallbackAfterRetry(Exception exception) {
+		return Mono.just(Result.error(String.format("Fallback: %s", exception.getMessage())));
+	}
+	
 }
